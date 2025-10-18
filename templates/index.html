@@ -20,23 +20,35 @@
 <input id="messageInput" required>
 <button type="submit">Send</button>
 <script type="text/javascript" charset="utf-8">
-
     document.getElementById("messageForm").addEventListener("submit", function(e) {
         e.preventDefault();
         const message = document.getElementById("messageInput").value.trim();
         if (message.length === 0) return; // (skips rest of code if the message is empy)
         // else sends the new message to the server
         socket.emit("new_message", {message: message});
-        
-        // TODO: use emit broadcast so the user gets new messages without reloading
-        location.reload();
+        document.getElementById("messageInput").value = ""; // clear messageInput box
     });
 </script>
 </form>
 
+<script>
+socket.on("new_message_broadcast", function(dict) {
+    const chat = document.createElement("message");
+    chat.className = dict.accepted ? "censored_message" : "deleted_message";
+    chat.innerHTML = `IP: ${dict.ip} Timestamp: ${dict.timestamp} Original message: ${dict.original} `+(dict.accepted ? `Safe message: ${dict.safe}`:'');
+    document.getElementById("chatbox").appendChild(chat);
+    document.getElementById("chatbox").appendChild(document.createElement("br"));
+});
+</script>
+
+
+<div id="chatbox">
 {% for message in messages %}
-<message id="{{message[0]}}" {% if message[4] == 0 %}class="deleted_message"{%endif%}>IP: {{message[1]}} Timestamp: {{message[2]}} Original message: {{message[3]}} {% if message[4] == 1 %}Safe message: {{message[5]}}{%endif%}</message><br>
+<message id="{{message[0]}}" {% if message[4] == 0 %}class="deleted_message"{%endif%}{% if message[4] == 1 %}class="censored_message"{%endif%}>IP: {{message[1]}} Timestamp: {{message[2]}} Original message: {{message[3]}} {% if message[4] == 1 %}Safe message: {{message[5]}}{%endif%}</message><br>
 {% endfor %}
+</div>
+
+
 <br><hr>
 <br>
 {% endblock %}

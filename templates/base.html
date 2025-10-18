@@ -10,6 +10,12 @@
             color: white;
             font-family: 'Trebuchet MS', sans-serif;
         }
+        .deleted_message {
+          background-color: #800000;
+        }
+        .censored_message {
+          background-color: #000080;
+        }
     </style>
 </head>
 
@@ -22,7 +28,7 @@
     <li class="flash-message">{{ message }}</li>
     {% endfor %}
 </ul>
-<style> {# Flashed message animation #}
+<style>
 .flash-message {
   background: #222;
   border: 1px solid #ccc;
