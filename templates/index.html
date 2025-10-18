@@ -7,17 +7,36 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
 
 
-
-
-
 <script type="text/javascript" charset="utf-8">
     var socket = io();
     socket.on("connect", function() {
-        socket.emit("message", {data: "I'm connected!"});
+        socket.emit("initial_connection", {data: "connected"});
     });
 </script>
 
 
+<form id="messageForm">
+<label>New Message: </label>
+<input id="messageInput" required>
+<button type="submit">Send</button>
+<script type="text/javascript" charset="utf-8">
+
+    document.getElementById("messageForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const message = document.getElementById("messageInput").value.trim();
+        if (message.length === 0) return; // (skips rest of code if the message is empy)
+        // else sends the new message to the server
+        socket.emit("new_message", {message: message});
+        
+        // TODO: use emit broadcast so the user gets new messages without reloading
+        location.reload();
+    });
+</script>
+</form>
+
+{% for message in messages %}
+<message id="{{message[0]}}" {% if message[4] == 0 %}class="deleted_message"{%endif%}>IP: {{message[1]}} Timestamp: {{message[2]}} Original message: {{message[3]}} {% if message[4] == 1 %}Safe message: {{message[5]}}{%endif%}</message><br>
+{% endfor %}
 <br><hr>
-<br>CSS is made for eink displays (like a kindle)
+<br>
 {% endblock %}
