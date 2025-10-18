@@ -65,5 +65,24 @@
 
 {% block body %}
 {% endblock %}
+<br>
+<form id="messageForm">
+<label>New Message: </label>
+<input id="messageInput" required>
+<button type="submit">Send</button>
+<script type="text/javascript" charset="utf-8">
+    document.getElementById("messageForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const message = document.getElementById("messageInput").value.trim();
+        if (message.length === 0) return; // (skips rest of code if the message is empy)
+        // else sends the new message to the server
+        socket.emit("new_message", {message: message});
+        document.getElementById("messageInput").value = ""; // clear messageInput box
+    });
+</script>
+</form>
+
+<br>
+<hr>
 </body>
 </html>

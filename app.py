@@ -42,8 +42,6 @@ def page_not_found(error):
 @socketio.on("initial_connection")
 def initialconnection(json):
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    print(ip, str(json["data"]))
-    # TODO make get last n function and return last 20 messages which the client will then display
 
 ## New message
 @socketio.on("new_message")
@@ -53,7 +51,6 @@ def new_message(json):
     
     # Original message the user sent
     original = str(json["message"]).strip()
-    print(ip,timestamp,"message:" ,original)
     
     # Input validation for original
     if not original or len(original) > 2000: # 2000 char limit per message
@@ -75,7 +72,7 @@ def new_message(json):
     
     cursor.execute("INSERT INTO messages (ip, timestamp, original, accepted, safe) VALUES (?, ?, ?, ?, ?)", (ip, timestamp, original, accepted, safe))
 
-    emit("new_message_broadcast", {"id":cursor.lastrowid, "ip":ip, "timestamp":timestamp, "original":original, "accepted":accepted, "safe":safe}, broadcast=True)
+    emit("new_message_broadcast", {"id":cursor.lastrowid, "original":original, "accepted":accepted, "safe":safe}, broadcast=True)
     
     db.commit()
     db.close()
