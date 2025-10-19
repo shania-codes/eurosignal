@@ -38,11 +38,6 @@ def page_not_found(error):
 
 
 # SocketIO
-## Initial Connection
-@socketio.on("initial_connection")
-def initialconnection(json):
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-
 ## New message
 @socketio.on("new_message")
 def new_message(json):
@@ -77,11 +72,27 @@ def new_message(json):
     db.commit()
     db.close()
 
-    
-    
-## Load older
-# TODO when user scrolls back far enough return more older messages if any, if less than n messages (including 0 older messages) display a message so the user knows they have seen loaded all messages
+## Load Older
+@socketio.on("load_older_messages")
+def load_older_messages(data):
+    oldest = int(data["eldestID"]) # User could input something bogus
 
+    db = get_db()
+    cursor = db.cursor()
+    n = 20 # number of older messages to fetch
+    cursor.execute("SELECT id, original, accepted, safe FROM messages WHERE id < ? ORDER BY id DESC LIMIT ?", (oldest, n,))
+    messages = cursor.fetchall()
+    db.close()
+    messages_to_send = []
+    for message in messages:
+        id, original, accepted, safe = message
+        messages_to_send.append({"id":id, "original":original, "accepted":accepted, "safe":safe})
+    if not messages_to_send:
+        emit("older_messages", {"messages": [], "new_eldest": None})
+
+    emit("older_messages", {"messages": messages_to_send, "new_eldest": messages_to_send[len(messages)-1]["id"]})
+
+    
 
 # Python Functions
 ## TODO AI(LLM or other) integration
@@ -102,7 +113,7 @@ def ai_safe_rewrite(original):
 def get_last_n_messages(n=20):
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT * from messages ORDER BY id DESC LIMIT ?", (n,))
+    cursor.execute("SELECT * FROM messages ORDER BY id DESC LIMIT ?", (n,))
     messages = cursor.fetchall()
     db.close()
     return messages[::-1] # Has oldest messages first
