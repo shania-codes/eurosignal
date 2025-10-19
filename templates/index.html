@@ -20,7 +20,7 @@ socket.on("new_message_broadcast", function(dict) {
 
 
 <form id="loadOlder">
-<input hidden id="eldestid" value="{{messages[0][0]}}">
+<input hidden id="eldestid" value="{% if messages %}{{messages[0][0]}}{%else%}-1{%endif%}">
 <button type="submit">Get Older Messages</button>
 </form>
 <script type="text/javascript" charset="utf-8">
@@ -39,7 +39,7 @@ socket.on("older_messages", function(messages) {
         const messageEl = document.createElement("message");
         messageEl.id = msg.id;
         messageEl.className = msg.accepted ? "censored_message" : "deleted_message";
-        messageEl.innerHTML = `Original message: ${msg.original} ` + (msg.accepted ? `Safe message: ${msg.safe}` : '');
+        messageEl.innerHTML = `Post >>${msg.id} ${msg.username}@${msg.timestamp}:<br>Original message: ${msg.original}<br>` + (msg.accepted ? `Safe message: ${msg.safe}` : 'This message was deleted by our AI')+ `<br>`;
 
         chatbox.insertBefore(document.createElement("br"), chatbox.firstChild);
         chatbox.insertBefore(messageEl, chatbox.firstChild);
@@ -51,26 +51,31 @@ socket.on("older_messages", function(messages) {
 
 <div id="chatbox">
 {% for message in messages %}
-<message id="{{message[0]}}" {% if message[4] == 0 %}class="deleted_message"{%endif%}{% if message[4] == 1 %}class="censored_message"{%endif%}>Original message: {{message[3]}} {% if message[4] == 1 %}Safe message: {{message[5]}}{%endif%}</message><br>
+<message id="{{message[0]}}" {% if message[4] == 0 %}class="deleted_message"{%endif%}{% if message[4] == 1 %}class="censored_message"{%endif%}>Post >>{{message[0]}} {{message[6]}}@{{message[2]}}:<br>Original message: {{message[3]}}<br>{% if message[4] == 1 %}Safe message: {{message[5]}}{%endif%}{% if message[4] == 0 %}This message was deleted by our AI{%endif%}<br><br></message>
 {% endfor %}
 </div>
 
 <br>
 <form id="messageForm">
+<label>Username: </label>
+<input id="usernameInput">
 <label>New Message: </label>
 <input id="messageInput" required>
 <button type="submit">Send</button>
 </form>
 
 <script type="text/javascript" charset="utf-8">
-    document.getElementById("messageForm").addEventListener("submit", function(form) {
-        form.preventDefault();
-        const message = document.getElementById("messageInput").value.trim();
-        if (message.length === 0) return; // (skips rest of code if the message is empy)
-        // else sends the new message to the server
-        socket.emit("new_message", {message: message}); // stopped working?
-        document.getElementById("messageInput").value = ""; // clear messageInput box
-    });
+document.getElementById("messageForm").addEventListener("submit", function(form) {
+    form.preventDefault();
+    const message = document.getElementById("messageInput").value.trim();
+    let username = document.getElementById("usernameInput").value.trim();
+    if (message.length === 0) return;
+    if (username.length === 0) username = "Anonymous";
+
+    socket.emit("new_message", {message: message, username: username});
+    document.getElementById("messageInput").value = "";
+    document.getElementById("usernameInput").value = "";
+});
 </script>
 <br>
 

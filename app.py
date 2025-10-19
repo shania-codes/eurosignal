@@ -19,7 +19,7 @@ def create_db():
 
     # Create tables
     ## Messages
-    cursor.execute("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT, timestamp TEXT, original TEXT NOT NULL, accepted BOOLEAN, safe TEXT)")
+    cursor.execute("CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT, timestamp TEXT, original TEXT NOT NULL, accepted BOOLEAN, safe TEXT, username TEXT NOT NULL)")
 
     db.commit()
     db.close()
@@ -46,6 +46,8 @@ def new_message(json):
     
     # Original message the user sent
     original = str(json["message"]).strip()
+
+    username = str(json["username"]).strip()[:30]
     
     # Input validation for original
     if not original or len(original) > 2000: # 2000 char limit per message
@@ -65,9 +67,9 @@ def new_message(json):
     db = get_db()
     cursor = db.cursor()
     
-    cursor.execute("INSERT INTO messages (ip, timestamp, original, accepted, safe) VALUES (?, ?, ?, ?, ?)", (ip, timestamp, original, accepted, safe))
+    cursor.execute("INSERT INTO messages (ip, timestamp, original, accepted, safe, username) VALUES (?, ?, ?, ?, ?, ?)", (ip, timestamp, original, accepted, safe, username,))
 
-    emit("new_message_broadcast", {"id":cursor.lastrowid, "original":original, "accepted":accepted, "safe":safe}, broadcast=True)
+    emit("new_message_broadcast", {"id":cursor.lastrowid, "original":original, "accepted":accepted, "safe":safe, "username":username, "timestamp":timestamp}, broadcast=True)
     
     db.commit()
     db.close()
@@ -75,22 +77,25 @@ def new_message(json):
 ## Load Older
 @socketio.on("load_older_messages")
 def load_older_messages(data):
-    oldest = int(data["eldestID"]) # User could input something bogus
-
-    db = get_db()
-    cursor = db.cursor()
-    n = 20 # number of older messages to fetch
-    cursor.execute("SELECT id, original, accepted, safe FROM messages WHERE id < ? ORDER BY id DESC LIMIT ?", (oldest, n,))
-    messages = cursor.fetchall()
-    db.close()
-    messages_to_send = []
-    for message in messages:
-        id, original, accepted, safe = message
-        messages_to_send.append({"id":id, "original":original, "accepted":accepted, "safe":safe})
-    if not messages_to_send:
+    oldest = int(data["eldestID"])
+    if oldest == -1:
         emit("older_messages", {"messages": [], "new_eldest": None})
+        return 0
+    else: 
+        db = get_db()
+        cursor = db.cursor()
+        n = 20 # number of older messages to fetch
+        cursor.execute("SELECT id, original, accepted, safe, username, timestamp FROM messages WHERE id < ? ORDER BY id DESC LIMIT ?", (oldest, n,))
+        messages = cursor.fetchall()
+        db.close()
+        messages_to_send = []
+        for message in messages:
+            id, original, accepted, safe, username, timestamp = message
+            messages_to_send.append({"id":id, "original":original, "accepted":accepted, "safe":safe, "username":username, "timestamp":timestamp})
+        if not messages_to_send:
+            emit("older_messages", {"messages": [], "new_eldest": None})
 
-    emit("older_messages", {"messages": messages_to_send, "new_eldest": messages_to_send[len(messages)-1]["id"]})
+        emit("older_messages", {"messages": messages_to_send, "new_eldest": messages_to_send[len(messages)-1]["id"]})
 
     
 
