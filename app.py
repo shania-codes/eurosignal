@@ -1,11 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 from flask_socketio import SocketIO, send, emit
 from datetime import datetime
 
 
 app = Flask(__name__)
-app.secret_key = "worst_admin"
 socketio = SocketIO()
 socketio.init_app(app)
 
@@ -94,6 +93,7 @@ def load_older_messages(data):
             messages_to_send.append({"id":id, "original":original, "accepted":accepted, "safe":safe, "username":username, "timestamp":timestamp})
         if not messages_to_send:
             emit("older_messages", {"messages": [], "new_eldest": None})
+            return
 
         emit("older_messages", {"messages": messages_to_send, "new_eldest": messages_to_send[len(messages)-1]["id"]})
 

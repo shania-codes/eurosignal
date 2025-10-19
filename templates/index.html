@@ -6,13 +6,29 @@
 {% block body %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
 
+<script>
+function escapeHTML(str) {
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+</script>
 
 <script type="text/javascript" charset="utf-8">
 var socket = io();
 socket.on("new_message_broadcast", function(dict) {
-    const chat = document.createElement("message");
+    const chat = document.createElement("div");
+    chat.id = dict.id;
     chat.className = dict.accepted ? "censored_message" : "deleted_message";
-    chat.innerHTML = `Original message: ${dict.original} `+(dict.accepted ? `Safe message: ${dict.safe}`:'');
+    
+    chat.innerHTML = `
+        Post &gt;&gt;${dict.id} ${escapeHTML(dict.username)}@${dict.timestamp}:<br>
+        Original message: ${escapeHTML(dict.original)}<br>
+        ${dict.accepted ? `Safe message: ${escapeHTML(dict.safe)}<br>` : 'This message was deleted by our AI<br>'}`;
+
     document.getElementById("chatbox").appendChild(chat);
     document.getElementById("chatbox").appendChild(document.createElement("br"));
 });
@@ -36,10 +52,18 @@ socket.on("older_messages", function(messages) {
     if (messages.messages.length === 0) {alert("No older messages.");return;}
 
     for (let msg of messages.messages) {
-        const messageEl = document.createElement("message");
+        const messageEl = document.createElement("div");
         messageEl.id = msg.id;
         messageEl.className = msg.accepted ? "censored_message" : "deleted_message";
-        messageEl.innerHTML = `Post >>${msg.id} ${msg.username}@${msg.timestamp}:<br>Original message: ${msg.original}<br>` + (msg.accepted ? `Safe message: ${msg.safe}` : 'This message was deleted by our AI')+ `<br>`;
+
+        const originalText = `Post >>${msg.id} ${msg.username}@${msg.timestamp}:\nOriginal message: ${msg.original}`;
+        const safeText = msg.accepted ? `Safe message: ${msg.safe}` : 'This message was deleted by our AI';
+
+        messageEl.innerHTML = `
+            Post &gt;&gt;${msg.id} ${escapeHTML(msg.username)}@${msg.timestamp}:<br>
+            Original message: ${escapeHTML(msg.original)}<br>
+            ${msg.accepted ? 'Safe message: ' + escapeHTML(msg.safe) + '<br>' : 'This message was deleted by our AI<br>'}`;
+
 
         chatbox.insertBefore(document.createElement("br"), chatbox.firstChild);
         chatbox.insertBefore(messageEl, chatbox.firstChild);
@@ -51,14 +75,18 @@ socket.on("older_messages", function(messages) {
 
 <div id="chatbox">
 {% for message in messages %}
-<message id="{{message[0]}}" {% if message[4] == 0 %}class="deleted_message"{%endif%}{% if message[4] == 1 %}class="censored_message"{%endif%}>Post >>{{message[0]}} {{message[6]}}@{{message[2]}}:<br>Original message: {{message[3]}}<br>{% if message[4] == 1 %}Safe message: {{message[5]}}{%endif%}{% if message[4] == 0 %}This message was deleted by our AI{%endif%}<br><br></message>
+<div id="{{message[0]}}" {% if message[4] == 0 %}class="deleted_message"{%endif%}{% if message[4] == 1 %}class="censored_message"{%endif%}>
+Post >>{{message[0]}} {{message[6]}}@{{message[2]}}:<br>
+Original message: {{message[3]}}<br>
+{% if message[4] == 1 %}Safe message: {{message[5]}}{%endif%}{% if message[4] == 0 %}This message was deleted by our AI{%endif%}
+</div><br>
 {% endfor %}
 </div>
 
 <br>
 <form id="messageForm">
 <label>Username: </label>
-<input id="usernameInput">
+<input id="usernameInput" maxlength="30">
 <label>New Message: </label>
 <input id="messageInput" required>
 <button type="submit">Send</button>
