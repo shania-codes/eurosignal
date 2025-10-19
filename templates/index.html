@@ -37,8 +37,10 @@ socket.on("new_message_broadcast", function(dict) {
 
 <form id="loadOlder">
 <input hidden id="eldestid" value="{% if messages %}{{messages[0][0]}}{%else%}-1{%endif%}">
+<br>
 <button type="submit">Get Older Messages</button>
 </form>
+<br>
 <script type="text/javascript" charset="utf-8">
 document.getElementById("loadOlder").addEventListener("submit", function(form) {
     form.preventDefault() 
@@ -84,6 +86,7 @@ Original message: {{message[3]}}<br>
 </div>
 
 <br>
+<div id="messageform">
 <form id="messageForm">
 <label>Username: </label>
 <input id="usernameInput" maxlength="30">
@@ -91,6 +94,7 @@ Original message: {{message[3]}}<br>
 <input id="messageInput" required>
 <button type="submit">Send</button>
 </form>
+</div>
 
 <script type="text/javascript" charset="utf-8">
 document.getElementById("messageForm").addEventListener("submit", function(form) {
